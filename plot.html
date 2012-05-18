@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Plot</title>
+<script type="text/javascript" src="https://raw.github.com/DmitryBaranovskiy/raphael/master/raphael-min.js"></script>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+<script type="text/javascript">
+var context;
+var unit = 30;
+var plotSize = 960;
+var plotSizeStr;
+var gridline;
+var paper;
+var tempDot;
+var tempDotX;
+var tempDotY;
+var tempPath;
+var lastDotX;
+var lastDotY;
+var drawing = false;
+var parts;
+var shapes;
+function removeDot(){
+	if (tempDot != undefined){
+		tempDot.remove();
+	}
+}
+function startOver(){
+	$.each(parts, function(i,t){ 
+		t.remove();
+	});
+	drawing = false;
+}
+function drawDot(x, y){
+	tempDot = paper.circle(x, y, 5);
+	tempDot.attr("fill", "#004712");
+	tempDot.attr("stroke", "#1a4074");
+	tempDotX = x;
+	tempDotY = y;
+}
+function moveDot(x, y){
+	if (tempDot == undefined){
+		drawDot(x, y);
+	} else if (x != tempDotX || y != tempDotY){
+		var anim = Raphael.animation({cx: x, cy: y}, 100);
+		tempDotX = x;
+		tempDotY = y;
+		tempDot.animate(anim);
+		if (drawing == true) {
+			tempPath.animate({path:"M" + lastDotX + " " + lastDotY + "L" + tempDotX + " " + tempDotY}, 100);
+		}
+	}
+}
+function roundIt(it, round){
+	return Math.round(parseInt(it)/round)*round;
+}
+function cancelBubble(e) {
+	var evt = e ? e:window.event;
+	if (evt.stopPropagation)    evt.stopPropagation();
+	if (evt.cancelBubble!=null) evt.cancelBubble = true;
+}
+function drawGrid(){
+	gridline = paper.path("M0 0L" + plotSizeStr + " 0");
+	gridline.attr("stroke", "#eee");
+	gridline = paper.path("M0 0L0 " + plotSizeStr);
+	gridline.attr("stroke", "#eee");
+	gridline = paper.path("M" + plotSizeStr + " 0L" + plotSizeStr + " " + plotSizeStr);
+	gridline.attr("stroke", "#eee");
+	gridline = paper.path("M0 " + plotSizeStr + "L" + plotSizeStr + " " + plotSizeStr);
+	gridline.attr("stroke", "#eee");
+	
+	var i = unit;
+	while (i < plotSize){
+		gridline = paper.path("M0 " + i.toString() + "L" + plotSizeStr + " " + i.toString());
+		gridline.attr("stroke", "#eee");
+		gridline = paper.path("M" + i.toString() + " 0L" + i.toString() + " " + plotSizeStr);
+		gridline.attr("stroke", "#eee");
+		i += unit;
+	}
+}
+window.addEventListener('load', function () {
+	plotSizeStr = plotSize.toString();
+	paper = Raphael("plot", plotSize, plotSize);
+	drawGrid();
+	parts = paper.set();
+	shapes = paper.set();
+	paper.canvas.onmousemout = removeDot;
+	paper.canvas.onmousemove = function(e) { 
+		e = e || window.event; 
+		moveDot(roundIt(e.offsetX, unit), roundIt(e.offsetY, unit));
+	}
+	paper.canvas.onclick = function(e) { 
+		e = e || window.event;
+		if (parts.length > 0 && parts[0].attrs.cx == tempDotX && parts[0].attrs.cy == tempDotY){
+			drawing = false;
+			shapes.push(parts);
+			parts = paper.set();
+		} else {
+			drawing = true;
+			tempPath = paper.path("M" + tempDotX + " " + tempDotY + "L" + tempDotX + " " + tempDotY);
+			parts.push(tempDot);
+		}
+		lastDotX = tempDotX;
+		lastDotY = tempDotY;
+		tempDot = tempDot.clone();
+	}
+}, false);
+</script>
+</head>
+<body>
+	<div id="mouse" style="float:right"></div>
+	<center><div id="plot" style="width:960px; height:960px; cursor:pointer"></center>
+</body>
+</html>
